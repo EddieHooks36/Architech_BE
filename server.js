@@ -21,11 +21,11 @@ app.use(express.json());
 
 app.get('/api/users', (req, res) => {
     // Handle GET request for retrieving users
-  });
+});
   
-  app.post('/api/users', (req, res) => {
+app.post('/api/users', (req, res) => {
     // Handle POST request for creating a new user
-  });
+});
   
 const port = 3000;
 app.listen(port, () => {
