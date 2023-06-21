@@ -17,6 +17,11 @@ def fix_id(obj):
     obj["_id"] = str(obj["_id"])
     return obj
 
+# to fix the bidId error
+def fix_bidId(obj):
+    obj["bidId"] = str(obj["_id"])
+    return obj
+
 # to get all users
 @app.get("/api/users")
 def users():
@@ -37,10 +42,15 @@ def total_users():
     return json.dumps(len(user_list))
 
 # to add a user
-@app.post("/api/users")
-def save_user(user):
-    db.Users.insert_one(user)
-    return json.dumps(user)
+@app.post("/api/saveUsers")
+def save_user():
+    data = request.get_json()
+    params = data['params']
+    name = params['name']
+    email = params['email']
+    password = params['password']
+    db.Users.insert_one({"name": name, "email": email, "password": password})
+    return jsonify("User Added!")
 
 # to verify a users email
 @app.get("/api/users/verifyEmail/<email>")
@@ -106,6 +116,35 @@ def get_requested_user_id():
     requestedUserId = None
     return json.dumps(requestedUserId)
 
+# to get all the bids
+@app.get("/api/bids")
+def bids():
+    bids = db.Bids.find()
+    bid_list = []
+    for bid in bids:
+        bid_list.append(fix_id(bid))
+    return json.dumps(bid_list)
+
+# to get the total number of bids
+@app.get("/api/bids/total")
+def total_bids():
+    bids = db.Bids.find()
+    bid_list = []
+    for bid in bids:
+        bid_list.append(fix_bidId(bid))
+    return json.dumps(len(bid_list))
+
+# to add a bid
+@app.post("/api/bids/saveBids")
+def save_bid():
+    data = request.get_json()
+    params = data['params']
+    originalPosterId = params['originalPosterId']
+    name = params['name']
+    description = params['description']
+    bidAmount = params['bidAmount']
+    db.Bids.insert_one({"originalPosterId": originalPosterId, "name": name, "description": description, "bidAmount": bidAmount})
+    return jsonify("Bid Added!")
 
         
 
