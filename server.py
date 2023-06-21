@@ -3,12 +3,14 @@ from config import db
 import config, secrets
 from bson import ObjectId
 import json
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
-app.config['CORS_ALLOW_ORIGIN'] = '*'
-CORS(app)
+CORS(app, origins="http://localhost:3000", supports_credentials=True)
+
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
 
 # to fix the ObjectId error
 def fix_id(obj):
@@ -64,15 +66,18 @@ def verify_user():
 # to get the logged in user
 @app.get("/api/users/loggedInUser")
 def get_logged_in_user():
-    loggedInUser = session.get('loggedInUser')
-    print("loggedInUser is ", loggedInUser)
-    return json.dumps(loggedInUser)
+    userLoggedIn = session.get('loggedInUser')
+    print("loggedInUser is ", userLoggedIn)
+    return jsonify(userLoggedIn)
 
 # to log out the user
 @app.post("/api/users/logout")
 def logout():
     session.pop('loggedInUser', None)
-    return jsonify("Logged Out")
+    session.clear()
+    session.modified = True
+    print(session.get('loggedInUser'))
+    return jsonify("Logged Out!")
 
 # to find a user by name
 @app.get("/api/users/find/<name>")
@@ -98,7 +103,7 @@ def change_requested_user_id(id):
 # to get the requested user id
 @app.get("/api/users/requestedUserId")
 def get_requested_user_id():
-    requestedUserId = session.get('requestedUserId')
+    requestedUserId = None
     return json.dumps(requestedUserId)
 
 
