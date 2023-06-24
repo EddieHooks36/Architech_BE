@@ -136,7 +136,7 @@ def total_bids():
     return json.dumps(len(bid_list))
 
 # to add a bid
-@app.post("/api/bids/saveBids")
+@app.post("/api/bids/createBids")
 def save_bid():
     data = request.get_json()
     params = data['params']
@@ -144,8 +144,11 @@ def save_bid():
     name = params['name']
     description = params['description']
     bidAmount = params['bidAmount']
-    image = params['bidImage']
-    db.Bids.insert_one({"originalPosterId": originalPosterId, "name": name, "description": description, "bidAmount": bidAmount, "bidImage": image})
+    image = "https://picsum.photos/200/300"
+    bidderId = ""
+    bidderName = ""
+    lastBidDate = ""
+    db.Bids.insert_one({"originalPosterId": originalPosterId, "name": name, "description": description, "bidAmount": bidAmount, "image": image, "bidderId": bidderId, "bidderName": bidderName, "lastBidDate": lastBidDate})
     return jsonify("Bid Added!")
 
 @app.post("/api/bids/bidOnProject")
@@ -156,17 +159,34 @@ def bid_on_project():
     bidderId = params['bidderId']
     bidderName = params['bidderName']
     bidAmount = params['bidAmount']
+    currentBidAmount = params['currentBidAmount']
+    print("the bid amount is ", bidAmount)
+    print("the current bid amount is ", currentBidAmount)
     bidDate = datetime.now().strftime("%m/%d/%Y %H:%M")
-    db.Bidders.insert_one({"bidId": bidId, "bidderId": bidderId, "bidderName": bidderName, "bidAmount": bidAmount, "bidDate": bidDate})
-    db.Bids.update_one(
-        {"_id": ObjectId(bidId)},
-          {"$set": {
-                  "bidderId": bidderId,
-                    "bidderName": bidderName,
-                      "bidAmount": bidAmount,
-                        "lastBidDate": bidDate}})
-    return jsonify("Bid Added!")
-
+    if bidAmount >= currentBidAmount:
+        print("bid amount is greater than or equal to current bid amount and will not be added")
+        return jsonify("Bid Amount Must Be less Than Current Bid Amount!")
+    else:
+        db.Bidders.insert_one({
+            "bidId": bidId,
+            "bidderId": bidderId,
+            "bidderName": bidderName,
+            "bidAmount": bidAmount,
+            "bidDate": bidDate
+        })
+        db.Bids.update_one(
+            {"_id": ObjectId(bidId)},
+            {"$set": {
+                "bidderId": bidderId,
+                "bidderName": bidderName,
+                "bidAmount": bidAmount,
+                "lastBidDate": bidDate
+            }}
+        )
+        print("bid amount is less than current bid amount and will be added")
+        print("the bid amount is ", bidAmount)
+        print("the current bid amount is ", currentBidAmount)
+        return jsonify("Bid Added!")
 # returns the current date/time
 @app.get("/api/currentDateTime")
 def current_date_time():
