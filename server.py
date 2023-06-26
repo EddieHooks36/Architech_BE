@@ -193,6 +193,69 @@ def current_date_time():
     currentDateTime = datetime.now().strftime("%m/%d/%Y %H:%M")
     return jsonify(currentDateTime)
 
+# for the feed secion
+@app.get("/api/feeds")
+def feeds():
+    feeds = db.Feed.find()
+    feed_list = []
+    for feed in feeds:
+        feed_list.append(fix_id(feed))
+    return json.dumps(feed_list)
+
+@app.get("/api/feeds/feed/<id>")
+def get_feed_by_id(id):
+    feed = db.Feed.find_one({"_id": ObjectId(id)})
+    return json.dumps(fix_id(feed))
+
+@app.post("/api/feeds/likeFeed")
+def like_feed():
+    data = request.json
+    params = data['params']
+    feedId = params['feedId']
+    likerId = params['likerId']
+    likerName = params['likerName']
+
+    feed = db.Feed.find_one({"_id": ObjectId(feedId)}, {"likedBy": 1})
+
+    if feed:
+        liked_by = feed.get("likedBy", [])  # Get the current likedBy array or an empty array if not present
+        liker_exists = any(
+            isinstance(liker, dict) and liker.get('likerId') == likerId for liker in liked_by
+        )
+
+        if liker_exists:
+            db.Feed.update_one(
+                {"_id": ObjectId(feedId)},
+                {
+                    "$inc": {"likes": -1},
+                    "$pull": {
+                        "likedBy": {
+                            "likerId": likerId,
+                            "likerName": likerName
+                        }
+                    }
+                }
+            )
+            return jsonify("You unliked this feed!")
+        else:
+            db.Feed.update_one(
+                {"_id": ObjectId(feedId)},
+                {
+                    "$inc": {"likes": 1},
+                    "$push": {
+                        "likedBy": {
+                            "likerId": likerId,
+                            "likerName": likerName
+                        }
+                    }
+                }
+            )
+            return jsonify("You liked this feed!")
+    else:
+        return jsonify("Feed not found")
+
+
+
         
 
 app.run(debug=True)
