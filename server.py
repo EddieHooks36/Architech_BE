@@ -126,6 +126,14 @@ def get_bid_by_id(id):
     bid = db.Bids.find_one({"_id": ObjectId(id)})
     return json.dumps(fix_id(bid))
 
+@app.get("/api/bids/bidsHistory/<id>")
+def get_bids_history(id):
+    bids = db.Bidders.find({"bidId": id})
+    bid_list = []
+    for bid in bids:
+        bid_list.append(fix_id(bid))
+    return json.dumps(bid_list)
+
 # to get the total number of bids
 @app.get("/api/bids/total")
 def total_bids():
@@ -143,13 +151,21 @@ def save_bid():
     originalPosterId = params['originalPosterId']
     name = params['name']
     description = params['description']
-    bidAmount = params['bidAmount']
+    bidAmount = float(params['bidAmount'])
     image = "https://picsum.photos/200/300"
     bidderId = ""
     bidderName = ""
     lastBidDate = ""
-    db.Bids.insert_one({"originalPosterId": originalPosterId, "name": name, "description": description, "bidAmount": bidAmount, "image": image, "bidderId": bidderId, "bidderName": bidderName, "lastBidDate": lastBidDate})
-    return jsonify("Bid Added!")
+    saved = db.Bids.insert_one({"originalPosterId": originalPosterId, "name": name, "description": description, "bidAmount": bidAmount, "image": image, "bidderId": bidderId, "bidderName": bidderName, "lastBidDate": lastBidDate})
+    return str(saved.inserted_id)
+
+@app.post("/api/bids/deleteBid")
+def delete_bid():
+    data = request.json
+    params = data['params']
+    bidId = params['bidId']
+    db.Bids.delete_one({"_id": ObjectId(bidId)})
+    return jsonify("Bid Deleted!")
 
 @app.post("/api/bids/bidOnProject")
 def bid_on_project():
@@ -158,8 +174,8 @@ def bid_on_project():
     bidId = params['bidId']
     bidderId = params['bidderId']
     bidderName = params['bidderName']
-    bidAmount = params['bidAmount']
-    currentBidAmount = params['currentBidAmount']
+    bidAmount = float(params['bidAmount'])
+    currentBidAmount = float(params['currentBidAmount'])
     print("the bid amount is ", bidAmount)
     print("the current bid amount is ", currentBidAmount)
     bidDate = datetime.now().strftime("%m/%d/%Y %H:%M")
@@ -254,8 +270,38 @@ def like_feed():
     else:
         return jsonify("Feed not found")
 
+@app.post("/api/feeds/createFeed")
+def create_feed():
+    data = request.json
+    params = data['params']
+    originalPosterId = params['originalPosterId']
+    title = params['title']
+    post = params['post']
+    date = datetime.now().strftime("%m/%d/%Y %H:%M")
+    likedBy = []
+    likes = 0
+    createdFeed = db.Feed.insert_one({"originalPosterId": originalPosterId, "title": title, "post": post, "likedBy": likedBy, "likes": likes, "date": date})
+    return str(createdFeed.inserted_id)
 
-
+@app.post("/api/feeds/deleteFeed")
+def delete_feed():
+    data = request.json
+    params = data['params']
+    feedId = params['feedId']
+    db.Feed.delete_one({"_id": ObjectId(feedId)})
+    return jsonify("Feed Deleted!")
         
+@app.post("/api/messages/sendMessage")
+def send_message():
+    data = request.json
+    params = data['params']
+    senderId = params['senderId']
+    senderName = params['senderName']
+    receiverId = params['receiverId']
+    message = params['message']
+    date = datetime.now().strftime("%m/%d/%Y %H:%M")
+    db.Messages.insert_one({"senderId": senderId, "senderName": senderName, "receiverId": receiverId, "message": message, "date": date})
+    return jsonify("Message Sent!")
+
 
 app.run(debug=True)
