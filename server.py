@@ -98,7 +98,9 @@ def find_user(name):
 @app.get("/api/users/findById/<id>")
 def find_user_by_id(id):
     user = db.Users.find_one({"_id": ObjectId(id)})
-    return json.dumps(fix_id(user))
+    uerObject = {"_id": str(user['_id']),"name": user['name'],"email": user['email']}
+    return json.dumps(uerObject)
+
 
 # to change the requested user id
 @app.get("/api/users/requestedUserId/<id>")
@@ -119,7 +121,7 @@ def bids():
     bid_list = []
     for bid in bids:
         bid_list.append(fix_id(bid))
-    return json.dumps(bid_list)
+    return json.dumps(bid_list[::-1])
 
 @app.get("/api/bids/bid/<id>")
 def get_bid_by_id(id):
@@ -132,7 +134,7 @@ def get_bids_history(id):
     bid_list = []
     for bid in bids:
         bid_list.append(fix_id(bid))
-    return json.dumps(bid_list)
+    return json.dumps(bid_list[::-1])
 
 # to get the total number of bids
 @app.get("/api/bids/total")
@@ -216,7 +218,7 @@ def feeds():
     feed_list = []
     for feed in feeds:
         feed_list.append(fix_id(feed))
-    return json.dumps(feed_list)
+    return json.dumps(feed_list[::-1])
 
 @app.get("/api/feeds/feed/<id>")
 def get_feed_by_id(id):
@@ -302,6 +304,55 @@ def send_message():
     date = datetime.now().strftime("%m/%d/%Y %H:%M")
     db.Messages.insert_one({"senderId": senderId, "senderName": senderName, "receiverId": receiverId, "message": message, "date": date})
     return jsonify("Message Sent!")
+
+@app.get("/api/messages")
+def messages():
+    messages = db.Messages.find()
+    message_list = []
+    for message in messages:
+        message_list.append(fix_id(message))
+    return json.dumps(message_list)
+
+@app.get("/api/messages/receiverId/<id>")
+def get_messages_by_receiver_id(id):
+    messages = db.Messages.find({"receiverId": id})
+    message_list = []
+    for message in messages:
+        message_list.append(fix_id(message))
+    return json.dumps(message_list)
+
+@app.get("/api/messages/senderId/<id>")
+def get_messages_by_sender_id(id):
+    messages = db.Messages.find({"senderId": id})
+    message_list = []
+    for message in messages:
+        message_list.append(fix_id(message))
+    return json.dumps(message_list)
+
+@app.get("/api/messages/<senderId>/<receiverId>")
+def get_messages_by_sender_id_and_receiver_id(senderId, receiverId):
+    messages = db.Messages.find({"senderId": senderId, "receiverId": receiverId})
+    message_list = []
+    for message in messages:
+        message_list.append(fix_id(message))
+    return json.dumps(message_list[::-1])
+
+@app.get("/api/messages/uniqueSenderIds/<receiverId>")
+def get_unique_sender_ids(receiverId):
+    messages = db.Messages.find({"receiverId": receiverId})
+    message_list = []
+    for message in messages:
+        message_list.append(fix_id(message))
+    unique_sender_ids = []
+    added_sender_ids = set()  # Track added sender IDs
+    for message in message_list:
+        sender_id = message['senderId']
+        if sender_id not in added_sender_ids:
+            unique_sender_ids.append({'senderId': sender_id, 'senderName': message['senderName']})
+            added_sender_ids.add(sender_id)
+    print(unique_sender_ids)
+    return json.dumps(unique_sender_ids)
+
 
 
 app.run(debug=True)
